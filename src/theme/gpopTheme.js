@@ -1,0 +1,26 @@
+export const gpopTheme = {
+  colors: {
+    ink: '#111827',
+    navy: '#16233f',
+    slate: '#64748b',
+    blue: '#2563eb',
+    sky: '#38bdf8',
+    cyan: '#06b6d4',
+    emerald: '#10b981',
+    amber: '#f59e0b',
+    orange: '#f97316',
+    rose: '#fb7185',
+    violet: '#8b5cf6',
+    indigo: '#6366f1',
+    graphite: '#334155',
+    paper: '#ffffff',
+    mist: '#f6f8fc',
+    border: '#dbe3ef',
+  },
+  chart: {
+    grid: '#e5edf7',
+    text: '#64748b',
+    safeBand: 'rgba(16, 185, 129, 0.10)',
+    warningBand: 'rgba(245, 158, 11, 0.10)',
+  },
+};

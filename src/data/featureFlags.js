@@ -1,0 +1,133 @@
+export const featureFlags = [
+  {
+    id: "dashboard.fridgeCharts",
+    name: "Dashboard fridge charts",
+    group: "Dashboard",
+    enabled: true,
+    description: "Show vaccine and dispensary fridge cards on the command centre.",
+    risk: "Low",
+  },
+  {
+    id: "dashboard.financeSnapshot",
+    name: "Dashboard finance snapshot",
+    group: "Dashboard",
+    enabled: true,
+    description: "Show finance, CQRS and dispensary profitability summary cards.",
+    risk: "Medium",
+  },
+  {
+    id: "dashboard.workforcePanel",
+    name: "Dashboard workforce panel",
+    group: "Dashboard",
+    enabled: true,
+    description: "Show rota, leave and who-is-on-site panels.",
+    risk: "Medium",
+  },
+  {
+    id: "dashboard.compliancePanel",
+    name: "Dashboard compliance panel",
+    group: "Dashboard",
+    enabled: true,
+    description: "Show compliance, audit and training exception cards.",
+    risk: "Low",
+  },
+  {
+    id: "careNavigation.module",
+    name: "Care Navigation module",
+    group: "Care Navigation",
+    enabled: true,
+    description: "Enable the governed care-navigation workspace.",
+    risk: "High",
+  },
+  {
+    id: "careNavigation.liveUseLock",
+    name: "Care Navigation live-use lock",
+    group: "Care Navigation",
+    enabled: true,
+    description: "Keep prototype pathways blocked from live patient use unless clinically approved.",
+    risk: "High",
+  },
+  {
+    id: "documents.intake",
+    name: "Document Intake",
+    group: "Documents",
+    enabled: true,
+    description: "Enable central upload and approval workspace for policies, invoices, GPP CSVs and evidence.",
+    risk: "Medium",
+  },
+  {
+    id: "documents.aiProcessing",
+    name: "AI document processing",
+    group: "Documents",
+    enabled: false,
+    description: "Allow backend-only AI classification/extraction. Mocked until Edge Functions and governance exist.",
+    risk: "High",
+  },
+  {
+    id: "integrations.niceApi",
+    name: "NICE API integration",
+    group: "Integrations",
+    enabled: false,
+    description: "Use NICE syndication metadata via backend adapter when licensed and credentials are available.",
+    risk: "High",
+  },
+  {
+    id: "integrations.easyCloud",
+    name: "EasyCloud integration",
+    group: "Integrations",
+    enabled: false,
+    description: "Use EasyLog Cloud API through Supabase Edge Functions once Lascar/EasyLog access is granted.",
+    risk: "Medium",
+  },
+  {
+    id: "system.databaseOnlyMode",
+    name: "Database-only mode",
+    group: "System",
+    enabled: false,
+    description: "Disable local fallback once Supabase tables, RLS and migrations are production-ready.",
+    risk: "High",
+  },
+  {
+    id: "system.prototypeWarnings",
+    name: "Prototype warnings",
+    group: "System",
+    enabled: true,
+    description: "Show demo-mode and governance warnings throughout the application.",
+    risk: "Low",
+  },
+];
+
+export const roleDashboardPresets = [
+  {
+    role: "Practice Manager",
+    cards: ["workforce", "finance", "compliance", "fridge", "activity", "integrationHealth"],
+  },
+  {
+    role: "GP Partner",
+    cards: ["governance", "workforce", "finance", "clinicalSafety", "activity"],
+  },
+  {
+    role: "Reception / Care Navigator",
+    cards: ["todayRota", "inbox", "careNavigation", "training"],
+  },
+  {
+    role: "Practice Nurse",
+    cards: ["vaccineFridge", "audits", "training", "tasks"],
+  },
+  {
+    role: "Dispenser",
+    cards: ["dispensaryFridge", "invoiceTasks", "financeExceptions", "training"],
+  },
+  {
+    role: "ARRS Pharmacist",
+    cards: ["medicationQueries", "dispensaryFinance", "training", "documents"],
+  },
+  {
+    role: "PCN Manager",
+    cards: ["workforce", "training", "documents", "integrationHealth"],
+  },
+  {
+    role: "ICB Viewer / Auditor",
+    cards: ["compliance", "audits", "clinicalSafety", "readonlyActivity"],
+  },
+];

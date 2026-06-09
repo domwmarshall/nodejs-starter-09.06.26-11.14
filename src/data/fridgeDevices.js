@@ -1,0 +1,61 @@
+export const fridgeDevices = [
+  {
+    id: "fridge-vaccine-1",
+    name: "Vaccine fridge",
+    location: "Treatment room",
+    type: "Vaccine fridge",
+    manufacturer: "LEC / EasyLog-ready placeholder",
+    easyCloudDeviceId: "awaiting-api-access",
+    targetMin: 2,
+    targetMax: 8,
+    currentTemperature: 5.1,
+    min24h: 3.8,
+    max24h: 6.4,
+    powerStatus: "On",
+    doorStatus: "Closed",
+    alarmStatus: "Clear",
+    lastSyncedAt: "Mock only",
+  },
+  {
+    id: "fridge-dispensary-1",
+    name: "Dispensary fridge",
+    location: "Dispensary",
+    type: "Medicines fridge",
+    manufacturer: "LEC / EasyLog-ready placeholder",
+    easyCloudDeviceId: "awaiting-api-access",
+    targetMin: 2,
+    targetMax: 8,
+    currentTemperature: 4.7,
+    min24h: 3.9,
+    max24h: 7.2,
+    powerStatus: "On",
+    doorStatus: "Closed",
+    alarmStatus: "Clear",
+    lastSyncedAt: "Mock only",
+  },
+];
+
+export const fridgeReadings = [
+  { deviceId: "fridge-vaccine-1", time: "08:00", temperature: 4.8 },
+  { deviceId: "fridge-vaccine-1", time: "10:00", temperature: 5.0 },
+  { deviceId: "fridge-vaccine-1", time: "12:00", temperature: 5.4 },
+  { deviceId: "fridge-vaccine-1", time: "14:00", temperature: 5.2 },
+  { deviceId: "fridge-vaccine-1", time: "16:00", temperature: 5.1 },
+  { deviceId: "fridge-dispensary-1", time: "08:00", temperature: 4.5 },
+  { deviceId: "fridge-dispensary-1", time: "10:00", temperature: 4.6 },
+  { deviceId: "fridge-dispensary-1", time: "12:00", temperature: 4.9 },
+  { deviceId: "fridge-dispensary-1", time: "14:00", temperature: 5.0 },
+  { deviceId: "fridge-dispensary-1", time: "16:00", temperature: 4.7 },
+];
+
+export const fridgeAlerts = [
+  {
+    id: "fridge-alert-api-access",
+    deviceId: "fridge-vaccine-1",
+    severity: "Info",
+    status: "Open",
+    title: "EasyCloud API access not configured",
+    detail: "Manual daily checks remain the fallback until Lascar/EasyLog API credentials and terms are confirmed.",
+    createdAt: "2026-06-06",
+  },
+];
