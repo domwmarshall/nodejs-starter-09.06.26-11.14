@@ -69,6 +69,7 @@ const permissionColumns = [
   { key: "compliance", label: "Compliance" },
   { key: "training", label: "Training" },
   { key: "audits", label: "Audits" },
+  { key: "fridges", label: "Fridges" },
   { key: "finance", label: "Finance" },
   { key: "careNavigation", label: "Care nav" },
   { key: "access", label: "Access" },

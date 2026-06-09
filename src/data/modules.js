@@ -10,6 +10,7 @@ import {
   FileText,
   KeyRound,
   Stethoscope,
+  Thermometer,
   Settings,
 } from "lucide-react";
 
@@ -77,6 +78,14 @@ export const modules = [
     risk: "Medium",
     status: "Active",
     summary: "Fire safety, fridge checks, legionella, asbestos, PAT and operational checks.",
+  },
+  {
+    id: "fridges",
+    name: "Fridges",
+    icon: Thermometer,
+    risk: "Medium",
+    status: "v6.3 EasyLog",
+    summary: "EasyLog Cloud device sync, fridge readings, alarms, excursions and manual fallback checks.",
   },
   {
     id: "finance",

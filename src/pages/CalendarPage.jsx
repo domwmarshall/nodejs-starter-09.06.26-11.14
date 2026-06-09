@@ -13,6 +13,7 @@ import {
 import { Badge } from "../components/Badge";
 import { MetricCard } from "../components/MetricCard";
 import { SectionHeader } from "../components/SectionHeader";
+import { SyncStatusBanner } from "../components/SyncStatusBanner";
 import { DataTable } from "../components/DataTable";
 import { RotaGrid } from "../components/calendar/RotaGrid";
 import { useLocalStorageState } from "../hooks/useLocalStorageState";
@@ -74,7 +75,7 @@ function formatDateChip(date) {
   };
 }
 
-export function CalendarPage({ holidayRequests = [], staffList = baseStaff, currentUser }) {
+export function CalendarPage({ holidayRequests = [], staffList = baseStaff, currentUser, syncStatus = {} }) {
   const rooms = getDefaultRooms();
   const [shifts, setShifts] = useLocalStorageState(SETTINGS_STORAGE_KEYS.rotaShifts, getDefaultShifts());
   const [selectedDate, setSelectedDate] = useState(getRotaDates(shifts)[0] || defaultCalendarDates[0]);
@@ -185,6 +186,10 @@ export function CalendarPage({ holidayRequests = [], staffList = baseStaff, curr
       <PageHeader eyebrow="Rota" title="Calendar, rooms and missing-shift command centre">
         Rota view showing room allocation, drag/drop-ready shift cards, missing shifts, shift filler suggestions and leave cover checks.
       </PageHeader>
+
+      <SyncStatusBanner status={syncStatus} moduleName="Rota capacity">
+        <span className="sync-status-mini">Room and workforce capacity is now prepared for Supabase-backed routing; SystmOne slot import remains a future adapter.</span>
+      </SyncStatusBanner>
 
       <section className="metric-grid">
         <MetricCard

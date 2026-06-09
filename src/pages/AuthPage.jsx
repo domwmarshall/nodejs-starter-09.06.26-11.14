@@ -24,7 +24,7 @@ import {
 } from "../services/authService";
 import { logActivity } from "../services/activityLogService";
 import { getSupabaseEnvironmentSummary } from "../services/supabaseClient";
-import { getCapacityBackboneStatus, seedCapacityBackboneFromLocal } from "../services/capacityBackboneService";
+import { getCapacityBackboneDiagnostics, getCapacityBackboneStatus, resetCapacityBackboneOperationalData, seedCapacityBackboneFromLocal } from "../services/capacityBackboneService";
 import { AlertBanner, Button, FormField, PageHeader, Panel, fieldClassName } from "../components/ui";
 
 function buildMembershipRows(session, memberships = []) {
@@ -138,6 +138,33 @@ export function AuthPage({ currentUser, staffList = [], holidayRequests = [] }) 
       metadata: { counts: response.counts, mode: response.mode },
     });
   }
+  async function handleCapacityBackboneDiagnostics() {
+    setBackboneBusy(true);
+    const response = await getCapacityBackboneDiagnostics();
+    setBackboneStatus(response);
+    setMessage(response.message || "Capacity backbone diagnostics completed.");
+    setBackboneBusy(false);
+  }
+
+  async function handleCapacityBackboneReset() {
+    const confirmed = window.confirm("Reset seeded operational data in Supabase? This keeps practice/profile/membership rows, but removes rooms, staff, skills, sessions, leave and care-nav rules for this practice so you can reseed cleanly.");
+    if (!confirmed) return;
+    setBackboneBusy(true);
+    const response = await resetCapacityBackboneOperationalData({ practiceName });
+    setBackboneStatus(response);
+    setMessage(response.message || "Capacity backbone reset attempted.");
+    setBackboneBusy(false);
+
+    void logActivity({
+      eventType: response.ok ? "capacity_backbone_reset" : "capacity_backbone_reset_failed",
+      module: "Access",
+      title: response.ok ? "Capacity backbone reset" : "Capacity backbone reset failed",
+      detail: response.message || "GPOP v6.2.1 capacity backbone reset completed.",
+      actorName: currentUser?.name || name,
+      actorRole: currentUser?.role || role,
+      metadata: { counts: response.counts, mode: response.mode },
+    });
+  }
 
   async function handleSignOut() {
     await signOutSupabase();
@@ -222,10 +249,10 @@ export function AuthPage({ currentUser, staffList = [], holidayRequests = [] }) 
       <Panel className="panel capacity-backbone-panel">
         <div className="premium-card-header">
           <div>
-            <span>v6.2 Supabase capacity backbone</span>
+            <span>v6.2.1 Supabase capacity backbone</span>
             <h3>Connect staff, rooms, sessions and care-nav routing</h3>
           </div>
-          <Badge>{backboneStatus?.ok ? "Ready" : environment.configured ? "Setup required" : "Fallback"}</Badge>
+          <Badge>{backboneStatus?.ok ? "DB live" : environment.configured ? "Check setup" : "Fallback"}</Badge>
         </div>
 
         <div className="blue-box">
@@ -233,23 +260,47 @@ export function AuthPage({ currentUser, staffList = [], holidayRequests = [] }) 
           <p>Practice-scoped records for rooms, staff profiles, staff skills, split working-pattern sessions, bank/locum sessions with cost, leave/unavailability and care-navigation assignment rules. No patient-identifiable data is created.</p>
         </div>
 
-        <div className="policy-actions">
+        <div className="policy-actions capacity-action-row">
           <Button type="button" variant="secondary" onClick={handleCapacityBackboneCheck} disabled={backboneBusy}>
             Check DB backbone
           </Button>
+          <Button type="button" variant="secondary" onClick={handleCapacityBackboneDiagnostics} disabled={backboneBusy}>
+            Run diagnostics
+          </Button>
           <Button type="button" variant="primary" onClick={handleCapacityBackboneSeed} disabled={backboneBusy || !environment.configured}>
-            Seed from current GPOP data
+            Seed / upsert current GPOP data
+          </Button>
+          <Button type="button" variant="danger" onClick={handleCapacityBackboneReset} disabled={backboneBusy || !environment.configured}>
+            Reset seeded operational data
           </Button>
         </div>
 
         {backboneStatus ? (
-          <div className="capacity-backbone-status">
+          <div className={backboneStatus.ok ? "capacity-backbone-status" : "capacity-backbone-status capacity-backbone-status-error"}>
             <strong>{backboneStatus.message}</strong>
+            {backboneStatus.checkedAt ? <p>Checked {new Date(backboneStatus.checkedAt).toLocaleString("en-GB")}</p> : null}
             <div className="settings-profile-grid">
               {Object.entries(backboneStatus.counts || {}).map(([key, value]) => (
                 <div key={key}><span>{key.replaceAll("_", " ")}</span><strong>{value}</strong></div>
               ))}
             </div>
+            {Array.isArray(backboneStatus.diagnostics) && backboneStatus.diagnostics.length ? (
+              <div className="diagnostics-list">
+                {backboneStatus.diagnostics.map((item) => (
+                  <div className="diagnostics-row" key={item.label}>
+                    <Badge>{item.ok ? "OK" : "Check"}</Badge>
+                    <strong>{item.label}</strong>
+                    <span>{item.detail}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {Array.isArray(backboneStatus.tableChecks) && backboneStatus.tableChecks.some((item) => !item.ok) ? (
+              <div className="blue-box blue-box-warning">
+                <strong>Table issue detected</strong>
+                <p>{backboneStatus.tableChecks.filter((item) => !item.ok).map((item) => `${item.table}: ${item.error}`).join(" · ")}</p>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </Panel>
@@ -266,7 +317,7 @@ export function AuthPage({ currentUser, staffList = [], holidayRequests = [] }) 
           <div className="premium-card-header"><div><span>Core tables</span><h3>Membership structure</h3></div><Badge>DB-ready</Badge></div>
           <div className="governance-alert-grid">
             {["practices", "profiles", "practice_memberships", "rooms", "staff_profiles", "staff_skills", "working_pattern_sessions", "bank_locum_sessions", "leave_requests", "care_nav_assignment_rules"].map((table) => (
-              <div className="governance-alert" key={table}><div><strong>{table}</strong><span>practice_id scoped and RLS-aware in the migration plan.</span></div><Badge>planned</Badge></div>
+              <div className="governance-alert" key={table}><div><strong>{table}</strong><span>practice_id scoped and RLS-aware in the migration plan.</span></div><Badge>RLS-ready</Badge></div>
             ))}
           </div>
         </Panel>

@@ -23,6 +23,7 @@ import { FinancePage } from "./pages/FinancePage";
 import { CareNavigationPage } from "./pages/CareNavigationPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
 import { AuthPage } from "./pages/AuthPage";
+import { FridgePage } from "./pages/FridgePage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 import {
@@ -147,6 +148,13 @@ function App() {
     getDefaultWorkforceProfiles()
   );
 
+  const [capacitySyncStatus, setCapacitySyncStatus] = useState({
+    source: isCapacityBackboneAvailable() ? "Supabase pending" : "localStorage",
+    message: isCapacityBackboneAvailable()
+      ? "Supabase is configured. Seed data from Access, then refresh to load DB-backed workforce data."
+      : "Supabase is not configured, so GPOP is using local browser data.",
+  });
+
   const safeWorkforceProfiles = useMemo(
     () => getSafeWorkforceProfiles(workforceProfiles),
     [workforceProfiles]
@@ -156,11 +164,32 @@ function App() {
     let cancelled = false;
 
     async function loadSupabaseWorkforce() {
-      if (!isCapacityBackboneAvailable()) return;
-      const response = await fetchWorkforceProfilesFromSupabase();
-      if (!cancelled && response.ok && Array.isArray(response.profiles) && response.profiles.length > 0) {
-        setWorkforceProfiles(response.profiles);
+      if (!isCapacityBackboneAvailable()) {
+        if (!cancelled) {
+          setCapacitySyncStatus({
+            source: "localStorage",
+            message: "Supabase is not configured. Staff, rota and care-nav capacity are using local browser data.",
+          });
+        }
+        return;
       }
+
+      const response = await fetchWorkforceProfilesFromSupabase();
+      if (cancelled) return;
+
+      if (response.ok && Array.isArray(response.profiles) && response.profiles.length > 0) {
+        setWorkforceProfiles(response.profiles);
+        setCapacitySyncStatus({
+          source: "Supabase",
+          message: `${response.profiles.length} workforce profile(s) loaded from the Supabase capacity backbone.`,
+        });
+        return;
+      }
+
+      setCapacitySyncStatus({
+        source: "localStorage",
+        message: response.message || "Supabase is configured, but no workforce profiles are seeded yet. Using local browser data.",
+      });
     }
 
     void loadSupabaseWorkforce();
@@ -338,12 +367,13 @@ function App() {
           addStaffProfile={addStaffProfile}
           updateStaffProfile={updateStaffProfile}
           resetWorkforceProfiles={resetWorkforceProfiles}
+          syncStatus={capacitySyncStatus}
         />
       );
     }
 
     if (activePage === "calendar") {
-      return <CalendarPage holidayRequests={holidayRequests} currentUser={activeUser} staffList={safeWorkforceProfiles} />;
+      return <CalendarPage holidayRequests={holidayRequests} currentUser={activeUser} staffList={safeWorkforceProfiles} syncStatus={capacitySyncStatus} />;
     }
 
     if (activePage === "inbox") {
@@ -361,6 +391,10 @@ function App() {
       return <AuditsPage currentUser={activeUser} staffList={safeWorkforceProfiles} />;
     }
 
+    if (activePage === "fridges") {
+      return <FridgePage currentUser={activeUser} />;
+    }
+
     if (activePage === "finance") return <FinancePage />;
 
     if (activePage === "documents") {
@@ -372,7 +406,7 @@ function App() {
     }
 
     if (activePage === "care-navigation") {
-      return <CareNavigationPage currentUser={activeUser} staffList={safeWorkforceProfiles} holidayRequests={holidayRequests} />;
+      return <CareNavigationPage currentUser={activeUser} staffList={safeWorkforceProfiles} holidayRequests={holidayRequests} syncStatus={capacitySyncStatus} />;
     }
 
     if (activePage === "settings") {

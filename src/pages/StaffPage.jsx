@@ -16,6 +16,7 @@ import {
 import { Badge } from "../components/Badge";
 import { MetricCard } from "../components/MetricCard";
 import { SectionHeader } from "../components/SectionHeader";
+import { SyncStatusBanner } from "../components/SyncStatusBanner";
 import { DataTable } from "../components/DataTable";
 import { formatDate } from "../utils/dateUtils";
 
@@ -706,6 +707,7 @@ export function StaffPage({
   addStaffProfile,
   updateStaffProfile,
   resetWorkforceProfiles,
+  syncStatus = {},
 }) {
   const [selectedStaffName, setSelectedStaffName] = useState(
     getStaffDisplayName(staffList[0] || baseStaff[0])
@@ -1116,6 +1118,10 @@ export function StaffPage({
       <PageHeader eyebrow="Workforce" title="Staff records and workforce control">
         Individual staff records now sit behind the workforce view. Admin users can maintain contact details, contract terms, working pattern, pension status, funding source, room preferences and compliance notes.
       </PageHeader>
+
+      <SyncStatusBanner status={syncStatus} moduleName="Workforce">
+        <span className="sync-status-mini">Changes still save locally first in this alpha; use Access → Seed / upsert to push the current working copy into Supabase.</span>
+      </SyncStatusBanner>
 
       <section className="metric-grid staff-metric-strip">
         <MetricCard

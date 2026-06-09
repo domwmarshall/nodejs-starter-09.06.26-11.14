@@ -17,6 +17,7 @@ import {
 import { Badge } from "../components/Badge";
 import { MetricCard } from "../components/MetricCard";
 import { SectionHeader } from "../components/SectionHeader";
+import { SyncStatusBanner } from "../components/SyncStatusBanner";
 import { DataTable } from "../components/DataTable";
 import { useLocalStorageState } from "../hooks/useLocalStorageState";
 import { formatDate } from "../utils/dateUtils";
@@ -1260,7 +1261,7 @@ function SafetyPill({ selectedRedFlags, selectedPathway }) {
   return <div className="care-live-risk care-live-risk-ok"><CheckCircle2 size={18} /><strong>Approved pathway · no red flag selected</strong></div>;
 }
 
-export function CareNavigationPage({ staffList = [], holidayRequests = [] } = {}) {
+export function CareNavigationPage({ staffList = [], holidayRequests = [], syncStatus = {} } = {}) {
   const [pathways, setPathways] = useLocalStorageState(
     CARE_NAVIGATION_PATHWAYS_STORAGE_KEY,
     getDefaultCareNavigationPathways()
@@ -1504,6 +1505,10 @@ export function CareNavigationPage({ staffList = [], holidayRequests = [] } = {}
         Type the caller's own words. GPOP matches the pathway in the background, shows a short question set, and fills the booking action/practitioner. Prototype only until clinician sign-off.
       </PageHeader>
 
+      <SyncStatusBanner status={syncStatus} moduleName="Care navigation capacity">
+        <span className="sync-status-mini">Routing now reads the loaded workforce pattern. Live SystmOne availability will be added later as an import adapter.</span>
+      </SyncStatusBanner>
+
       <Panel className="care-sixty-console">
         <div className="care-sixty-intake-card">
           <label className="care-sixty-search">
@@ -1529,6 +1534,22 @@ export function CareNavigationPage({ staffList = [], holidayRequests = [] } = {}
             <input className={fieldClassName} type="date" value={capacityDate} onChange={(event) => setCapacityDate(event.target.value)} />
           </label>
         </div>
+
+        <section className="care-capacity-strip">
+          <div>
+            <span>Visible today</span>
+            <strong>{capacitySchedule.assignments.length} clinician/session(s)</strong>
+          </div>
+          <div className="care-capacity-chips">
+            {capacitySchedule.assignments.slice(0, 5).map((assignment) => (
+              <span key={`${assignment.staffName}-${assignment.room}-${assignment.time}`}>
+                {assignment.staffName} · {assignment.role} · {assignment.time || "time not set"}
+              </span>
+            ))}
+            {capacitySchedule.assignments.length === 0 ? <span>No visible working-pattern capacity for this date</span> : null}
+          </div>
+          {capacitySchedule.conflicts.length ? <Badge>{capacitySchedule.conflicts.length} room conflict(s)</Badge> : null}
+        </section>
 
         <div className="care-sixty-main-grid">
           <main className="care-sixty-questions">

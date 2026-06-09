@@ -8,7 +8,7 @@ import {
 } from "./workforceService";
 import { isSupabaseConfigured, supabase } from "./supabaseClient";
 
-export const CAPACITY_BACKBONE_VERSION = "v6.2";
+export const CAPACITY_BACKBONE_VERSION = "v6.2.1";
 export const DEFAULT_PRACTICE_NAME = "Fleggburgh Surgery";
 export const DEFAULT_PRACTICE_ID = "demo-practice";
 
@@ -22,7 +22,7 @@ const DAY_TO_NUMBER = {
   Sunday: 7,
 };
 
-function fallback(message = "Supabase not configured") {
+function fallback(message = "Supabase not configured", extra = {}) {
   return {
     ok: false,
     mode: "localStorage fallback",
@@ -30,6 +30,8 @@ function fallback(message = "Supabase not configured") {
     practice: null,
     membership: null,
     counts: {},
+    checkedAt: new Date().toISOString(),
+    ...extra,
   };
 }
 
@@ -164,6 +166,44 @@ export async function getCurrentAuthUser() {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data?.user) return null;
   return data.user;
+}
+
+export async function getCurrentSupabaseSessionSummary() {
+  if (!isCapacityBackboneAvailable()) {
+    return {
+      ok: false,
+      mode: "localStorage fallback",
+      message: "Supabase env vars are not configured.",
+      user: null,
+    };
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    return { ok: false, mode: "Supabase", message: error.message, user: null };
+  }
+
+  const user = data?.session?.user || null;
+  return {
+    ok: Boolean(user),
+    mode: "Supabase",
+    message: user ? `Signed in as ${user.email}` : "Supabase configured, but no active Auth session.",
+    user,
+  };
+}
+
+async function countPracticeRows(practiceId, table) {
+  const { count, error } = await supabase
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq("practice_id", practiceId);
+
+  return {
+    table,
+    count: error ? null : count || 0,
+    ok: !error,
+    error: error?.message || "",
+  };
 }
 
 export async function ensurePracticeBackbone({ practiceName = DEFAULT_PRACTICE_NAME, role = "Practice Manager", actor = {} } = {}) {
@@ -493,6 +533,9 @@ export async function seedCapacityBackboneFromLocal({ practiceName = DEFAULT_PRA
 
 export async function getCapacityBackboneStatus() {
   if (!isCapacityBackboneAvailable()) return fallback("Supabase is not configured.");
+  const sessionSummary = await getCurrentSupabaseSessionSummary();
+  if (!sessionSummary.ok) return fallback(sessionSummary.message, { mode: "Supabase", auth: sessionSummary });
+
   const context = await ensurePracticeBackbone({ practiceName: DEFAULT_PRACTICE_NAME });
   if (!context.ok) return context;
 
@@ -506,21 +549,103 @@ export async function getCapacityBackboneStatus() {
     "care_nav_assignment_rules",
   ];
 
+  const tableChecks = [];
   const counts = {};
   for (const table of tables) {
-    const { count, error } = await supabase
-      .from(table)
-      .select("id", { count: "exact", head: true })
-      .eq("practice_id", context.practice.id);
-    counts[table] = error ? "setup needed" : count || 0;
+    const result = await countPracticeRows(context.practice.id, table);
+    tableChecks.push(result);
+    counts[table] = result.ok ? result.count : "error";
   }
+
+  const errors = tableChecks.filter((item) => !item.ok);
+  const seededTables = tableChecks.filter((item) => Number(item.count || 0) > 0).length;
 
   return {
     ...context,
-    ok: true,
+    ok: errors.length === 0,
     mode: "Supabase",
-    message: "Capacity backbone status checked.",
+    source: "Supabase",
+    message: errors.length
+      ? `Capacity backbone checked with ${errors.length} table issue(s).`
+      : seededTables > 0
+        ? "Capacity backbone checked. Supabase contains seeded operational records."
+        : "Capacity backbone checked. Tables are reachable but operational data has not been seeded yet.",
     counts,
+    tableChecks,
+    auth: sessionSummary,
+    checkedAt: new Date().toISOString(),
+    canSeed: errors.length === 0,
+  };
+}
+
+export async function resetCapacityBackboneOperationalData({ practiceName = DEFAULT_PRACTICE_NAME } = {}) {
+  if (!isCapacityBackboneAvailable()) return fallback("Supabase is not configured.");
+  const context = await ensurePracticeBackbone({ practiceName });
+  if (!context.ok) return context;
+
+  const practiceId = context.practice.id;
+  const tables = [
+    "staff_skills",
+    "working_pattern_sessions",
+    "bank_locum_sessions",
+    "leave_requests",
+    "care_nav_assignment_rules",
+    "rooms",
+    "staff_profiles",
+  ];
+
+  const deleted = {};
+  try {
+    for (const table of tables) {
+      const before = await countPracticeRows(practiceId, table);
+      const { error } = await supabase.from(table).delete().eq("practice_id", practiceId);
+      if (error) throw new Error(`${table} reset failed: ${error.message}`);
+      deleted[table] = before.ok ? before.count : "unknown";
+    }
+
+    return {
+      ...context,
+      ok: true,
+      mode: "Supabase",
+      source: "Supabase",
+      message: "Operational capacity data reset. Practice/profile/membership rows were kept.",
+      counts: deleted,
+      checkedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    return fallback(error?.message || "Capacity backbone reset failed.", { mode: "Supabase", practice: context.practice, membership: context.membership });
+  }
+}
+
+export async function getCapacityBackboneDiagnostics() {
+  if (!isCapacityBackboneAvailable()) {
+    return fallback("Supabase env vars are not configured.", {
+      diagnostics: [{ label: "Frontend env", ok: false, detail: "Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY." }],
+    });
+  }
+
+  const auth = await getCurrentSupabaseSessionSummary();
+  const diagnostics = [
+    { label: "Frontend env", ok: true, detail: "VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are present." },
+    { label: "Supabase Auth", ok: auth.ok, detail: auth.message },
+  ];
+
+  if (!auth.ok) {
+    return fallback("Diagnostics completed. Supabase is configured but no authenticated user is active.", { mode: "Supabase", diagnostics, auth });
+  }
+
+  const status = await getCapacityBackboneStatus();
+  const tableChecks = status.tableChecks || [];
+  diagnostics.push(...tableChecks.map((item) => ({
+    label: item.table,
+    ok: item.ok,
+    detail: item.ok ? `${item.count} row(s)` : item.error,
+  })));
+
+  return {
+    ...status,
+    diagnostics,
+    message: status.ok ? "Diagnostics completed. Backbone tables are reachable." : status.message,
   };
 }
 
